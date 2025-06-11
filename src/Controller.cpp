@@ -12,94 +12,17 @@ Model *Controller::getModel()
 {
     return &model;
 }
-void Controller::handleSignup(string input)
+AuthStatus Controller::handleSignup(const string& username, const string& password)
 {
-    string username;
-    string password;
-    string order;
-    istringstream iss(input);
-
-    iss >> order;
-    iss >> order;
-
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-
-    iss >> order;
-    if (order != "username")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, username, '\"');
-    iss >> order;
-    if (order != "password")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, password, '\"');
-    model.signup(username, password);
+    return model.signup(username, password);
 }
-void Controller::handleLogin(string input)
+AuthStatus Controller::handleLogin(const string& username, const string& password)
 {
-    string username;
-    string password;
-    string order;
-    istringstream iss(input);
-
-    iss >> order;
-    iss >> order;
-
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-
-    iss >> order;
-    if (order != "username")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, username, '\"');
-    iss >> order;
-    if (order != "password")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, password, '\"');
-    model.login(username, password);
+    return model.login(username, password);
 }
-void Controller::handleLogout(string input)
+AuthStatus Controller::handleLogout()
 {
-string order;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    model.logout();
+    return model.logout();
 }
 void Controller::handleAddNormalEvent(string input)
 {

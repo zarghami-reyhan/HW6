@@ -25,9 +25,9 @@ public:
     Controller(Model &m);
 
     Model* getModel();
-    void handleSignup(string input);
-    void handleLogin(string input);
-    void handleLogout(string input);
+    AuthStatus handleSignup(const string& username, const string& password);
+    AuthStatus handleLogin(const string& username, const string& password);
+    AuthStatus handleLogout();
     void handleAddNormalEvent(string input);
     void handleAddRecurringEvent(string input);
     void handleAddTask(string input);

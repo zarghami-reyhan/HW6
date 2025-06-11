@@ -9,6 +9,16 @@
 #include "JointEvent.hpp"
 using namespace std;
 
+// Enum for Authentication Status
+enum class AuthStatus {
+    SUCCESS,
+    PERMISSION_DENIED, // User already logged in, or no user logged in for logout
+    USER_EXISTS,       // For signup: username taken
+    BAD_REQUEST,       // For signup/login: other validation error (e.g. empty username/password)
+    NOT_FOUND,         // For login: user not found
+    INVALID_CREDENTIALS // For login: password incorrect
+};
+
 class Model
 {
 private:
@@ -20,9 +30,9 @@ private:
 public:
     Model();
 
-    bool signup(const string &username, const string &password);
-    bool login(const string &username, const string &password);
-    bool logout();
+    AuthStatus signup(const string &username, const string &password);
+    AuthStatus login(const string &username, const string &password);
+    AuthStatus logout();
 
     shared_ptr<User> getCurrentUser() const;
 

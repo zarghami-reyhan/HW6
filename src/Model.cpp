@@ -4,57 +4,51 @@
 
 Model::Model() : currentUser(nullptr) {}
 
-bool Model::signup(const string &username, const string &password)
+AuthStatus Model::signup(const string &username, const string &password)
 {
     if (currentUser != nullptr)
     {
-        cout << "Permission Denied" << endl;
-        return false;
+        return AuthStatus::PERMISSION_DENIED;
     }
     if (users.find(username) != users.end())
     {
-        cout << "Bad Request" << endl;
-        return false;
+        return AuthStatus::USER_EXISTS;
     }
     users[username] = make_shared<User>(username, password);
-    login(username,password);
-    return true;
+    // Temporarily, the result of this internal login is not directly handled by signup's return.
+    // Signup's main job is user creation.
+    login(username, password);
+    return AuthStatus::SUCCESS;
 }
 
-bool Model::login(const string &username, const string &password)
+AuthStatus Model::login(const string &username, const string &password)
 {
     if (currentUser != nullptr)
     {
-        cout << "Permission Denied" << endl;
-        return false;
+        // This implies a user is already logged in, cannot login again.
+        return AuthStatus::PERMISSION_DENIED;
     }
     auto it = users.find(username);
     if (it == users.end())
     {
-        cout << "Not Found" << endl;
-        return false;
+        return AuthStatus::NOT_FOUND;
     }
     if (!it->second->checkPassword(password))
     {
-        cout << "Permission Denied" << endl;
-        return false;
+        return AuthStatus::INVALID_CREDENTIALS;
     }
     currentUser = it->second;
-    cout << "OK" << endl;
-    return true;
+    return AuthStatus::SUCCESS;
 }
 
-bool Model::logout()
+AuthStatus Model::logout()
 {
-
     if (currentUser == nullptr)
     {
-        cout << "Permission Denied" << endl;
-        return false;
+        return AuthStatus::PERMISSION_DENIED;
     }
     currentUser = nullptr;
-    cout << "OK" << endl;
-    return true;
+    return AuthStatus::SUCCESS;
 }
 
 shared_ptr<User> Model::getCurrentUser() const
