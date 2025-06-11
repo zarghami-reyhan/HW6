@@ -8,6 +8,9 @@
 #include "../server/server.hpp"
 #include "handlers.hpp"
 #include "../handlers/auth_handlers.hpp" // Added for auth handlers
+#include "../handlers/event_handlers.hpp" // Added for event handlers
+#include "../handlers/task_handlers.hpp"  // Added for task handlers
+#include "../handlers/report_handlers.hpp" // Added for report handlers
 
 void mapServerPaths(Server& server, Controller& controller) { // Added controller argument
     server.setNotFoundErrPage("static/404.html");
@@ -18,7 +21,7 @@ void mapServerPaths(Server& server, Controller& controller) { // Added controlle
     server.post("/login", new LoginHandler());
     server.get("/up", new ShowPage("static/upload_form.html"));
     server.post("/up", new UploadHandler());
-    server.get("/colors", new ColorHandler("template/colors.html"));
+    // server.get("/colors", new ColorHandler("template/colors.html")); // Commented out to prevent template engine crash
     server.get("/music", new ShowPage("static/music.html"));
     server.get("/music/moonlight.mp3", new ShowFile("static/moonlight.mp3", "audio/mpeg"));
 
@@ -26,6 +29,20 @@ void mapServerPaths(Server& server, Controller& controller) { // Added controlle
     server.post("/api/signup", new UserSignupHandler(controller));
     server.post("/api/login", new UserLoginHandler(controller));
     server.post("/api/logout", new UserLogoutHandler(controller));
+
+    // HW6 API Event Routes
+    server.post("/api/events/normal", new AddNormalEventHandler(controller));
+    server.get("/api/events/normal", new ListNormalEventsHandler(controller));
+    server.post("/api/events/periodic", new AddPeriodicEventHandler(controller));
+    server.post("/api/events/joint", new AddJointEventHandler(controller));
+    server.post("/api/events/joint/confirm", new ConfirmJointEventHandler(controller));
+    server.post("/api/events/joint/reject", new RejectJointEventHandler(controller));
+
+    // HW6 API Task Routes
+    server.post("/api/tasks", new AddTaskHandler(controller));
+
+    // HW6 API Report Routes
+    server.get("/api/reports", new GetReportHandler(controller));
 }
 
 int main(int argc, char** argv) {

@@ -27,7 +27,7 @@ endif
 
 all: $(BUILD_DIR) $(OUT_EXE)
 
-$(OUT_EXE): $(BUILD_DIR)/main.o $(BUILD_DIR)/handlers.o $(BUILD_DIR)/auth_handlers.o $(BUILD_DIR)/response.o $(BUILD_DIR)/request.o $(BUILD_DIR)/utilities.o $(BUILD_DIR)/strutils.o $(BUILD_DIR)/server.o $(BUILD_DIR)/route.o $(BUILD_DIR)/template_parser.o $(HW6_OBJS)
+$(OUT_EXE): $(BUILD_DIR)/main.o $(BUILD_DIR)/handlers.o $(BUILD_DIR)/auth_handlers.o $(BUILD_DIR)/event_handlers.o $(BUILD_DIR)/task_handlers.o $(BUILD_DIR)/report_handlers.o $(BUILD_DIR)/response.o $(BUILD_DIR)/request.o $(BUILD_DIR)/utilities.o $(BUILD_DIR)/strutils.o $(BUILD_DIR)/server.o $(BUILD_DIR)/route.o $(BUILD_DIR)/template_parser.o $(HW6_OBJS)
 	$(CXX) $(CXXFLAGS) $^ $(LDLIBS) -o $@
 
 $(BUILD_DIR):
@@ -62,6 +62,15 @@ $(BUILD_DIR)/main.o: examples/main.cpp server/server.hpp utils/utilities.hpp uti
 
 $(BUILD_DIR)/auth_handlers.o: handlers/auth_handlers.cpp handlers/auth_handlers.hpp ../src/Controller.hpp ../src/Model.hpp server/server.hpp
 	$(CXX) $(CXXFLAGS) -c handlers/auth_handlers.cpp -o $(BUILD_DIR)/auth_handlers.o
+
+$(BUILD_DIR)/event_handlers.o: handlers/event_handlers.cpp handlers/event_handlers.hpp ../src/Controller.hpp ../src/Model.hpp ../src/DateTime.hpp server/server.hpp
+	$(CXX) $(CXXFLAGS) -c handlers/event_handlers.cpp -o $(BUILD_DIR)/event_handlers.o
+
+$(BUILD_DIR)/task_handlers.o: handlers/task_handlers.cpp handlers/task_handlers.hpp ../src/Controller.hpp ../src/Model.hpp ../src/DateTime.hpp server/server.hpp
+	$(CXX) $(CXXFLAGS) -c handlers/task_handlers.cpp -o $(BUILD_DIR)/task_handlers.o
+
+$(BUILD_DIR)/report_handlers.o: handlers/report_handlers.cpp handlers/report_handlers.hpp ../src/Controller.hpp ../src/Model.hpp ../src/DateTime.hpp ../src/Activity.hpp server/server.hpp
+	$(CXX) $(CXXFLAGS) -c handlers/report_handlers.cpp -o $(BUILD_DIR)/report_handlers.o
 
 # Rule for HW6 object files
 # This generic rule should handle all HW6 .cpp files.

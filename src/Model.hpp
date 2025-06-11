@@ -19,6 +19,34 @@ enum class AuthStatus {
     INVALID_CREDENTIALS // For login: password incorrect
 };
 
+// Enum for Event Status
+enum class EventStatus {
+    SUCCESS,
+    PERMISSION_DENIED, // No user logged in
+    OVERLAP,
+    HOLIDAY_FOUND,
+    BAD_REQUEST,        // Invalid input parameters
+    GUEST_NOT_FOUND     // New status for addJointEvent
+};
+
+// Enum for Task Status
+enum class TaskStatus {
+    SUCCESS,
+    PERMISSION_DENIED, // No user logged in
+    BAD_REQUEST        // Invalid input parameters (e.g., empty title)
+};
+
+// Enum for Joint Event Action Status
+enum class JointEventActionStatus {
+    SUCCESS,
+    PERMISSION_DENIED, // No user logged in, or not authorized for this action
+    EVENT_NOT_FOUND,
+    ALREADY_CONFIRMED,
+    EVENT_IS_NOT_A_JOINT_EVENT,
+    OVERLAP,           // If confirming causes an overlap for the current user
+    ACTION_FAILED      // Generic failure
+};
+
 class Model
 {
 private:
@@ -37,11 +65,11 @@ public:
     shared_ptr<User> getCurrentUser() const;
 
     HolidayManager &getHolidayManager();
-    bool addNormalEvent(const shared_ptr<NormalEvent> &event);
+    EventStatus addNormalEvent(const shared_ptr<NormalEvent> &event, int& out_event_id);
 
-    bool addPeriodicEvent(const shared_ptr<PeriodicEvent> &event);
+    EventStatus addPeriodicEvent(const shared_ptr<PeriodicEvent> &event, int& out_event_id);
 
-    bool addTask(const shared_ptr<Task> &task);
+    TaskStatus addTask(const shared_ptr<Task> &task, int& out_task_id);
 
     const vector<shared_ptr<NormalEvent>> &getNormalEvents() const;
     const vector<shared_ptr<PeriodicEvent>> &getPeriodicEvents() const;
@@ -55,10 +83,10 @@ public:
 
     bool deleteTask(int task_id);
     bool editTask(int task_id, shared_ptr<Task> new_task);
-    bool addJointEvent(shared_ptr<JointEvent> &event) const;
-    void print_joint_event();
-    bool Taiid(int id,shared_ptr<User> user,int i);
-    void rad(int id);
+    EventStatus addJointEvent(shared_ptr<JointEvent> &event, int& out_event_id);
+    void print_joint_event(); // Keep for now, might be used by old CLI parts
+    JointEventActionStatus confirmJointEventInvitation(int event_id);
+    JointEventActionStatus rejectJointEventInvitation(int event_id);
 };
 
 #endif
