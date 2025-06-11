@@ -52,6 +52,7 @@ public:
     void rejectJointEvent(int invitationId);
     vector<shared_ptr<JointEvent>>& getJointEvents() ;
     const vector<int>& getInvitations() const; 
+    void removeJointEventById(int event_id);
 };
 
 #endif

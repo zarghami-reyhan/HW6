@@ -104,3 +104,11 @@ vector<shared_ptr<JointEvent>>& User::getJointEvents() {
 const vector<int>& User::getInvitations() const {
     return invitations;
 }
+
+void User::removeJointEventById(int event_id) {
+    jointEvents.erase(std::remove_if(jointEvents.begin(), jointEvents.end(),
+                                     [event_id](const shared_ptr<JointEvent>& ev) {
+                                         return ev->getId() == event_id;
+                                     }),
+                      jointEvents.end());
+}

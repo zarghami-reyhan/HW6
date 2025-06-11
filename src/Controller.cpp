@@ -1,376 +1,118 @@
 #include "Controller.hpp"
-#include "UserManager.hpp"
-#include <iostream>
-#include <sstream>
-#include <algorithm>
+#include "UserManager.hpp" // This might not be needed anymore if only used by old handlers
+#include <iostream>     // Keep for non-refactored methods that use cout
+#include <sstream>      // Keep for non-refactored methods
+#include <algorithm>    // For std::sort and std::transform (used in new handleGetReport)
+#include <vector>       // For std::vector
+#include <memory>       // For std::shared_ptr
+// #include "Activity.hpp" // Already included via Controller.hpp
 
-#include <sstream>
-#include <algorithm>
+// Note: Old local enum ActivityType and struct ActivityEntry are now removed. They are in Activity.hpp
+
 Controller::Controller(Model &m)
     : model(m) {}
 Model *Controller::getModel()
 {
     return &model;
 }
-void Controller::handleSignup(string input)
+AuthStatus Controller::handleSignup(const string& username, const string& password)
 {
-    string username;
-    string password;
-    string order;
-    istringstream iss(input);
-
-    iss >> order;
-    iss >> order;
-
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-
-    iss >> order;
-    if (order != "username")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, username, '\"');
-    iss >> order;
-    if (order != "password")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, password, '\"');
-    model.signup(username, password);
+    return model.signup(username, password);
 }
-void Controller::handleLogin(string input)
+AuthStatus Controller::handleLogin(const string& username, const string& password)
 {
-    string username;
-    string password;
-    string order;
-    istringstream iss(input);
-
-    iss >> order;
-    iss >> order;
-
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-
-    iss >> order;
-    if (order != "username")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, username, '\"');
-    iss >> order;
-    if (order != "password")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss.ignore();
-    iss.ignore(1, '\"');
-    getline(iss, password, '\"');
-    model.login(username, password);
+    return model.login(username, password);
 }
-void Controller::handleLogout(string input)
+AuthStatus Controller::handleLogout()
 {
-string order;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    model.logout();
+    return model.logout();
 }
-void Controller::handleAddNormalEvent(string input)
+
+EventStatus Controller::handleAddNormalEvent(const string& title, const string& description, const DateTime::Date& date, int start_time, int duration, int& out_event_id)
 {
-    string title;
-    string description = "";
-    DateTime::Date date;
-    string datestr;
-    int start_time;
-    int duration;
-    string order;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    while (iss >> order)
-    {
-        if (order == "date")
-        {
-            iss >> datestr;
-            date = DateTime::parseDate(datestr);
-        }
-        else if (order == "start_time")
-        {
-            iss >> start_time;
-            if (start_time <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-        else if (order == "duration")
-        {
-            iss >> duration;
-            if (duration <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-        else if (order == "title")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            getline(iss, title, '\"');
-        }
-        else if (order == "description")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            getline(iss, description, '\"');
-        }
-        else
-        {
-            cout << "Bad Request" << endl;
-            return;
-        }
-    }
-
-    if (title.empty() || start_time <= 0 || duration <= 0)
-    {
-        cout << "Bad Request" << endl;
-        return;
+    if (title.empty() || start_time <= 0 || duration <= 0) {
+        out_event_id = -1;
+        return EventStatus::BAD_REQUEST;
     }
 
     shared_ptr<NormalEvent> event = make_shared<NormalEvent>(title, description, date, start_time, duration);
-    if (!model.addNormalEvent(event))
-    {
-        event->decreamentid();
-        return;
-    }
+
+    return model.addNormalEvent(event, out_event_id);
 }
-void Controller::handleAddRecurringEvent(string input)
-{
 
-    string title;
-    string description = "";
-    DateTime::Date start_date;
-    DateTime::Date end_date;
-    string start_datestr;
-    string end_datestr;
-    int start_time;
-    int duration;
-    string order;
-    string type;
-    string day = "";
-    int Day = 0;
-    vector<int> vector_week_days;
-    string week_day = "";
-    string Sunday, Wednesday, Friday, Monday, Saturday, Thursday, Tuesday;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    while (iss >> order)
-    {
-        if (order == "start_date")
-        {
-            iss >> start_datestr;
-            start_date = DateTime::parseDate(start_datestr);
-        }
-        else if (order == "end_date")
-        {
-            iss >> end_datestr;
-            end_date = DateTime::parseDate(end_datestr);
-        }
-        else if (order == "day")
-        {
-            iss >> day;
-        }
-        else if (order == "start_time")
-        {
-            iss >> start_time;
-            if (start_time <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-        else if (order == "duration")
-        {
-            iss >> duration;
-            if (duration <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-
-        else if (order == "type")
-        {
-            iss >> type;
-        }
-        else if (order == "week_days")
-        {
-            iss >> week_day;
-            stringstream ss(week_day);
-            string token;
-            while (getline(ss, token, ','))
-            {
-                if (token == "Friday")
-                    vector_week_days.push_back(0);
-                else if (token == "Saturday")
-                    vector_week_days.push_back(1);
-                else if (token == "Sunday")
-                    vector_week_days.push_back(2);
-                else if (token == "Monday")
-                    vector_week_days.push_back(3);
-                else if (token == "Tuesday")
-                    vector_week_days.push_back(4);
-                else if (token == "Wednesday")
-                    vector_week_days.push_back(5);
-                else if (token == "Thursday")
-                    vector_week_days.push_back(6);
-                else
-                {
-                    cout << "Bad Request" << endl;
-                    return;
-                }
-            }
-        }
-        else if (order == "title")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            getline(iss, title, '\"');
-        }
-        else if (order == "description")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            getline(iss, description, '\"');
-        }
-
-        else
-        {
-            cout << "Bad Request" << endl;
-            return;
-        }
+vector<shared_ptr<NormalEvent>> Controller::handleGetNormalEvents(EventStatus& status_code) {
+    shared_ptr<User> currentUser = model.getCurrentUser();
+    if (!currentUser) {
+        status_code = EventStatus::PERMISSION_DENIED;
+        return {};
     }
 
-    if (title.empty() || start_time <= 0 || duration <= 0)
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    if (!day.empty())
-        Day = stoi(day);
-    RecurrenceType event_type = stringToRecurrenceType(type);
-    shared_ptr<PeriodicEvent> event = make_shared<PeriodicEvent>(title, description, start_date, end_date, start_time, duration, event_type, Day, vector_week_days);
-    
-    if (!model.addPeriodicEvent(event))
-    {
-        event->decreamentid();
-        return;
-    }
+    status_code = EventStatus::SUCCESS;
+    return currentUser->getNormalEvents();
 }
-void Controller::handleAddTask(string input)
-{
-    string title;
-    string description = "";
-    DateTime::Date date;
-    string datestr;
-    int time;
-    string order;
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    while (iss >> order)
-    {
-        if (order == "date")
-        {
-            iss >> datestr;
-            date = DateTime::parseDate(datestr);
-        }
-        else if (order == "time")
-        {
-            iss >> time;
-            if (time <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
 
-        else if (order == "title")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            getline(iss, title, '\"');
-        }
-        else if (order == "description")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            getline(iss, description, '\"');
-        }
-        else
-        {
-            cout << "Bad Request" << endl;
-            return;
-        }
+EventStatus Controller::handleAddPeriodicEvent(
+    const string& title, const string& description,
+    DateTime::Date startDate,
+    const DateTime::Date& endDate,
+    int startTime, int duration,
+    RecurrenceType recurrenceType,
+    int dayOfMonth,
+    const vector<int>& weeklyDays,
+    int& out_event_id
+) {
+    if (title.empty() || startTime <= 0 || duration <= 0) {
+        out_event_id = -1;
+        return EventStatus::BAD_REQUEST;
     }
 
-    if (title.empty() || time <= 0)
-    {
-        cout << "Bad Request" << endl;
-        return;
+    shared_ptr<PeriodicEvent> event = make_shared<PeriodicEvent>(
+        title, description, startDate, endDate, startTime, duration,
+        recurrenceType, dayOfMonth, weeklyDays
+    );
+
+    return model.addPeriodicEvent(event, out_event_id);
+}
+
+EventStatus Controller::handleAddJointEvent(
+    const string& title, const string& description,
+    const DateTime::Date& date,
+    int startTime, int endTime,
+    const vector<string>& guest_usernames,
+    int& out_event_id
+) {
+    shared_ptr<User> current_user_ptr = model.getCurrentUser();
+    if (!current_user_ptr) {
+        out_event_id = -1;
+        return EventStatus::PERMISSION_DENIED;
     }
-    shared_ptr<Task> task = make_shared<Task>(title, description, date, time);
-    if(!model.addTask(task)){
-        task->decreamentid();
-        return;
+
+    if (title.empty() || startTime <= 0 || endTime <= startTime || guest_usernames.empty()) {
+        out_event_id = -1;
+        return EventStatus::BAD_REQUEST;
     }
+
+    string transmitter_username = current_user_ptr->getUsername();
+    shared_ptr<JointEvent> event = make_shared<JointEvent>(
+        title, description, date, startTime, endTime, guest_usernames, transmitter_username
+    );
+
+    return model.addJointEvent(event, out_event_id);
+}
+
+TaskStatus Controller::handleAddTask(
+    const string& title, const string& description,
+    const DateTime::Date& dueDate,
+    int dueTime,
+    int& out_task_id
+) {
+    if (title.empty() || dueTime < 0 || dueTime > 23) {
+        out_task_id = -1;
+        return TaskStatus::BAD_REQUEST;
+    }
+
+    shared_ptr<Task> task = make_shared<Task>(title, description, dueDate, dueTime);
+    return model.addTask(task, out_task_id);
 }
 
 void Controller::handleDeleteTask(string input)
@@ -528,500 +270,112 @@ void Controller::handleEditTask(string input)
     }
 }
 
-enum class ActivityType
-{
-    PeriodicEvent = 1,
-    NormalEvent = 2,
-    Task = 3,
-    JointEvent = 4
-};
-
-struct ActivityEntry
-{
-    DateTime::Date date;
-    int hour;
-    ActivityType type;
-    int id;
-    string description;
-
-    bool operator<(const ActivityEntry &other) const
-    {
-        if (date.year != other.date.year)
-            return date.year < other.date.year;
-        if (date.month != other.date.month)
-            return date.month < other.date.month;
-        if (date.day != other.date.day)
-            return date.day < other.date.day;
-        if (hour != other.hour)
-            return hour < other.hour;
-        if (type != other.type)
-            return type < other.type;
-        return id < other.id;
-    }
-};
-
-void Controller::printReport(shared_ptr<User> user, const DateTime::Date &fromDate, const DateTime::Date &toDate, const string &filterType)
-{
-    if (!user)
-    {
-        cout << "User not logged in." << endl;
-        return;
-    }
-
-    vector<ActivityEntry> activities;
-
-    auto isTypeAllowed = [&](ActivityType t) -> bool
-    {
-        if (filterType.empty())
-            return true;
-        if (filterType == "event" && t == ActivityType::NormalEvent)
-            return true;
-        if (filterType == "periodic_event" && t == ActivityType::PeriodicEvent)
-            return true;
-        if (filterType == "task" && t == ActivityType::Task)
-            return true;
-        return false;
-    };
-
-    for (const auto &periodicEvent : user->getPeriodicEvents())
-    {
-        if (!isTypeAllowed(ActivityType::PeriodicEvent))
-            continue;
-
-        int startDay = DateTime::daysFromBaseDate(fromDate);
-        int endDay = DateTime::daysFromBaseDate(toDate);
-
-        for (int d = startDay; d <= endDay; ++d)
-        {
-            int y = 1404 + (d / 360);
-            int rem = d % 360;
-            int m = 1 + (rem / 30);
-            int day = 1 + (rem % 30);
-            DateTime::Date currentDate(y, m, day);
-
-            if (periodicEvent->occursOnDate(currentDate))
-            {
-                activities.push_back({currentDate,
-                                      periodicEvent->getStartTime(),
-                                      ActivityType::PeriodicEvent,
-                                      periodicEvent->getId(),
-                                      periodicEvent->toString()});
-            }
-        }
-    }
-
-    for (const auto &normalEvent : user->getNormalEvents())
-    {
-        if (!isTypeAllowed(ActivityType::NormalEvent))
-            continue;
-        int eventDay = DateTime::daysFromBaseDate(normalEvent->getDate());
-        if (eventDay >= DateTime::daysFromBaseDate(fromDate) && eventDay <= DateTime::daysFromBaseDate(toDate))
-        {
-            activities.push_back(ActivityEntry{
-                normalEvent->getDate(),
-                normalEvent->getStartTime(),
-                ActivityType::NormalEvent,
-                normalEvent->getId(),
-                normalEvent->toString()});
-        }
-    }
-
-    for (const auto &task : user->getTasks())
-    {
-        if (!isTypeAllowed(ActivityType::Task))
-            continue;
-        int dueDay = DateTime::daysFromBaseDate(task->getDueDate());
-        if (dueDay >= DateTime::daysFromBaseDate(fromDate) && dueDay <= DateTime::daysFromBaseDate(toDate))
-        {
-            activities.push_back({task->getDueDate(),
-                                  task->getDueTime(),
-                                  ActivityType::Task,
-                                  task->getId(),
-                                  task->toString()});
-        }
-    }
-
-
-
-    sort(activities.begin(), activities.end());
-
-    for (const auto &activity : activities)
-    {
-        cout << activity.description << endl;
-    }
-}
-
-void Controller::handleGetReport(string input)
-{
-    string order;
-    istringstream iss(input);
-
-    iss >> order;
-    if (order != "GET")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss >> order;
-    if (order != "report")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-
-    DateTime::Date fromDate(1404, 1, 1);
-    DateTime::Date toDate;
-    bool hasFrom = false;
-    bool hasTo = false;
-    string filterType = "";
-
-    while (iss >> order)
-    {
-        if (order == "from")
-        {
-            string from_str;
-            if (!(iss >> from_str))
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-            fromDate = DateTime::parseDate(from_str);
-            hasFrom = true;
-        }
-        else if (order == "to")
-        {
-            string to_str;
-            if (!(iss >> to_str))
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-            toDate = DateTime::parseDate(to_str);
-            hasTo = true;
-        }
-        else if (order == "type")
-        {
-            if (!(iss >> filterType))
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-            transform(filterType.begin(), filterType.end(), filterType.begin(), ::tolower);
-            if (filterType != "task" && filterType != "event" && filterType != "periodic_event" && filterType != "event_join")
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-        else
-        {
-            cout << "Bad Request" << endl;
-            return;
-        }
-    }
-
-    if (!hasTo)
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-
+// New handleGetReport implementation
+vector<ActivityEntry> Controller::handleGetReport(
+    const DateTime::Date& fromDate,
+    const DateTime::Date& toDate,
+    const string& filterTypeStr,
+    EventStatus& status_code
+) {
     shared_ptr<User> currentUser = model.getCurrentUser();
-    if (!currentUser)
-    {
-        cout << "Permission Denied" << endl;
-        return;
+    if (!currentUser) {
+        status_code = EventStatus::PERMISSION_DENIED;
+        return {};
     }
 
+    status_code = EventStatus::SUCCESS;
     vector<ActivityEntry> activities;
+    string lowerFilterType = filterTypeStr;
+    std::transform(lowerFilterType.begin(), lowerFilterType.end(), lowerFilterType.begin(), ::tolower);
 
-    auto isTypeAllowed = [&](ActivityType t) -> bool
-    {
-        if (filterType.empty())
-            return true;
-        if (filterType == "event" && t == ActivityType::NormalEvent)
-            return true;
-        if (filterType == "periodic_event" && t == ActivityType::PeriodicEvent)
-            return true;
-        if (filterType == "task" && t == ActivityType::Task)
-            return true;
-        if (filterType == "JointEvent" && t == ActivityType::JointEvent)
-            return true;
+    auto isTypeAllowed = [&](ActivityType t) -> bool {
+        if (lowerFilterType.empty()) return true;
+        // Allow "event" or "normal_event" for NormalEvent type
+        if ((lowerFilterType == "event" || lowerFilterType == "normal_event") && t == ActivityType::NormalEvent) return true;
+        if (lowerFilterType == "periodic_event" && t == ActivityType::PeriodicEvent) return true;
+        if (lowerFilterType == "task" && t == ActivityType::Task) return true;
+        if (lowerFilterType == "joint_event" && t == ActivityType::JointEvent) return true;
         return false;
     };
 
-    int startDay = DateTime::daysFromBaseDate(fromDate);
-    int endDay = DateTime::daysFromBaseDate(toDate);
+    int fromDateDays = DateTime::daysFromBaseDate(fromDate);
+    int toDateDays = DateTime::daysFromBaseDate(toDate);
 
-    for (const auto &periodicEvent : currentUser->getPeriodicEvents())
-    {
-        if (!isTypeAllowed(ActivityType::PeriodicEvent))
-            continue;
+    // Normal Events
+    if (isTypeAllowed(ActivityType::NormalEvent)) {
+        for (const auto& event_ptr : currentUser->getNormalEvents()) {
+            int eventDay = DateTime::daysFromBaseDate(event_ptr->getDate());
+            if (eventDay >= fromDateDays && eventDay <= toDateDays) {
+                std::string details = "Duration: " + std::to_string(event_ptr->getDuration()) + " hours";
+                activities.push_back({event_ptr->getDate(), event_ptr->getStartTime(), ActivityType::NormalEvent, event_ptr->getId(), event_ptr->getDescription(), event_ptr->getTitle(), details});
+            }
+        }
+    }
 
-        for (int d = startDay; d <= endDay; ++d)
-        {
-            int y = 1404 + (d / 360);
-            int rem = d % 360;
-            int m = 1 + (rem / 30);
-            int day = 1 + (rem % 30);
-            DateTime::Date currentDate(y, m, day);
-
-            if (periodicEvent->occursOnDate(currentDate))
-            {
-                string recurrenceStr;
-                switch (periodicEvent->getRecurrenceType())
-                {
-                case RecurrenceType::Daily:
-                    recurrenceStr = "Daily";
-                    break;
-                case RecurrenceType::Weekly:
-                    recurrenceStr = "Weekly";
-                    break;
-                case RecurrenceType::Monthly:
-                    recurrenceStr = "Monthly";
-                    break;
-                default:
-                    recurrenceStr = "Unknown";
-                    break;
+    // Periodic Events
+    if (isTypeAllowed(ActivityType::PeriodicEvent)) {
+        for (const auto& event_ptr : currentUser->getPeriodicEvents()) {
+            for (int d = fromDateDays; d <= toDateDays; ++d) {
+                int y = 1404 + (d / 360);
+                int rem = d % 360;
+                int m = 1 + (rem / 30);
+                int day_val = 1 + (rem % 30);
+                DateTime::Date currentDate(y, m, day_val);
+                if (currentDate.day > 0 && currentDate.month > 0 && currentDate.year >0 && event_ptr->occursOnDate(currentDate)) {
+                    std::string recurrenceStr;
+                    switch (event_ptr->getRecurrenceType()) {
+                        case RecurrenceType::Daily: recurrenceStr = "Daily"; break;
+                        case RecurrenceType::Weekly: recurrenceStr = "Weekly"; break;
+                        case RecurrenceType::Monthly: recurrenceStr = "Monthly"; break;
+                        default: recurrenceStr = "Unknown"; break;
+                    }
+                    std::string details = "Duration: " + std::to_string(event_ptr->getDuration()) + " hours, Type: " + recurrenceStr;
+                    activities.push_back({currentDate, event_ptr->getStartTime(), ActivityType::PeriodicEvent, event_ptr->getId(), event_ptr->getDescription(), event_ptr->getTitle(), details});
                 }
-
-                stringstream ss;
-                ss << "periodic_event \"" << periodicEvent->getTitle()
-                   << "\" on " << currentDate.year << "/"
-                   << (currentDate.month < 10 ? "0" : "") << currentDate.month << "/"
-                   << (currentDate.day < 10 ? "0" : "") << currentDate.day
-                   << " from " << periodicEvent->getStartTime()
-                   << " for " << periodicEvent->getDuration()
-                   << " hours " << recurrenceStr << ": \"" << periodicEvent->getDescription() << "\"";
-
-                activities.push_back({currentDate,
-                                      periodicEvent->getStartTime(),
-                                      ActivityType::PeriodicEvent,
-                                      periodicEvent->getId(),
-                                      ss.str()});
             }
         }
     }
 
-    for (const auto &normalEvent : currentUser->getNormalEvents())
-    {
-        if (!isTypeAllowed(ActivityType::NormalEvent))
-            continue;
-        int eventDay = DateTime::daysFromBaseDate(normalEvent->getDate());
-        if (eventDay >= startDay && eventDay <= endDay)
-        {
-            activities.push_back(ActivityEntry{
-                normalEvent->getDate(),
-                normalEvent->getStartTime(),
-                ActivityType::NormalEvent,
-                normalEvent->getId(),
-                normalEvent->toString()});
-        }
-    }
-
-    for (const auto &jointEvent : currentUser->getJointEvents())
-    {
-        if (!isTypeAllowed(ActivityType::JointEvent))
-            continue;
-        int eventDay = DateTime::daysFromBaseDate(jointEvent->getDate());
-        if (eventDay >= startDay && eventDay <= endDay)
-        {
-            activities.push_back(ActivityEntry{
-                jointEvent->getDate(),
-                jointEvent->getStartTime(),
-                ActivityType::JointEvent,
-                jointEvent->getId(),
-                jointEvent->toString()});
-        }
-    }
-
-    for (const auto &task : currentUser->getTasks())
-    {
-        if (!isTypeAllowed(ActivityType::Task))
-            continue;
-        int dueDay = DateTime::daysFromBaseDate(task->getDueDate());
-        if (dueDay >= startDay && dueDay <= endDay)
-        {
-            activities.push_back({task->getDueDate(),
-                                  task->getDueTime(),
-                                  ActivityType::Task,
-                                  task->getId(),
-                                  task->toString()});
-        }
-    }
-
-    sort(activities.begin(), activities.end());
-
-    if (activities.empty())
-    {
-        cout << "Empty" << endl;
-        return;
-    }
-
-    for (const auto &activity : activities)
-    {
-        cout << activity.description << endl;
-    }
-}
-void Controller::handleJoinEvent(string input)
-{
-    string title, description;
-    DateTime::Date date;
-    string date_str;
-    int start_time;
-    int end_time;
-    string guests_str;
-    vector<string> guests;
-    string order;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    while (iss >> order)
-    {
-        if (order == "guests")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            if (!getline(iss, guests_str, '\"'))
-            {
-                cout << "Bad Request" << endl;
-                return;
+    // Tasks
+    if (isTypeAllowed(ActivityType::Task)) {
+        for (const auto& task_ptr : currentUser->getTasks()) {
+            int taskDay = DateTime::daysFromBaseDate(task_ptr->getDueDate());
+            if (taskDay >= fromDateDays && taskDay <= toDateDays) {
+                 activities.push_back({task_ptr->getDueDate(), task_ptr->getDueTime(), ActivityType::Task, task_ptr->getId(), task_ptr->getDescription(), task_ptr->getTitle(), ""});
             }
         }
-        else if (order == "date")
-        {
-            iss >> date_str;
-            date = DateTime::parseDate(date_str);
-        }
-        else if (order == "start_time")
-        {
+    }
 
-            if (!(iss >> start_time) || start_time <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
+    // Joint Events
+    if (isTypeAllowed(ActivityType::JointEvent)) {
+        for (const auto& event_ptr : currentUser->getJointEvents()) {
+            if (event_ptr->isConfirmed()){
+                int eventDay = DateTime::daysFromBaseDate(event_ptr->getDate());
+                if (eventDay >= fromDateDays && eventDay <= toDateDays) {
+                    std::string details = "Duration: " + std::to_string(event_ptr->getDuration()) + " hours. Guests: ";
+                    const auto& guests = event_ptr->getGuests();
+                    for(size_t i=0; i < guests.size(); ++i){
+                        details += guests[i] + (i < guests.size()-1 ? ", " : "");
+                    }
+                    activities.push_back({event_ptr->getDate(), event_ptr->getStartTime(), ActivityType::JointEvent, event_ptr->getId(), event_ptr->getDescription(), event_ptr->getTitle(), details});
+                }
             }
-        }
-        else if (order == "end_time")
-        {
-            if (!(iss >> end_time) || end_time <= 0)
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-        else if (order == "title")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            if (!getline(iss, title, '\"'))
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-        else if (order == "description")
-        {
-            iss.ignore();
-            iss.ignore(1, '\"');
-            if (!getline(iss, description, '\"'))
-            {
-                cout << "Bad Request" << endl;
-                return;
-            }
-        }
-
-        else
-        {
-            cout << "Bad Request" << endl;
-            return;
         }
     }
 
-    size_t pos = 0;
-    while ((pos = guests_str.find(',')) != string::npos)
-    {
-        string guest = guests_str.substr(0, pos);
-        guests.push_back(guest);
-        guests_str.erase(0, pos + 1);
-    }
-    guests.push_back(guests_str);
-
-    shared_ptr<JointEvent> jointEvent = make_shared<JointEvent>(title, description, date, start_time, end_time, guests, model.getCurrentUser()->getUsername());
-    if (!model.addJointEvent(jointEvent))
-    {
-        jointEvent->decreamentid();
-        return;
-    }
+    std::sort(activities.begin(), activities.end());
+    return activities;
 }
 
-void Controller::handleConfirmJointEvent(string input)
-{
-    string order;
-    int join_event_id;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss >> order;
-    if (order != "invitation_id")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss >> join_event_id;
-    if (!model.getCurrentUser())
-    {
-        cout << "Permission Denied" << endl;
-    }
-    model.Taiid(join_event_id,model.getCurrentUser(),0);
-  
+JointEventActionStatus Controller::handleConfirmJointEvent(int event_id) {
+    return model.confirmJointEventInvitation(event_id);
 }
 
-void Controller::handleRejectJointEvent(string input)
-{
-     string order;
-    int join_event_id;
-
-    istringstream iss(input);
-    iss >> order;
-    iss >> order;
-    iss >> order;
-    if (order != "?")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss >> order;
-    if (order != "invitation_id")
-    {
-        cout << "Bad Request" << endl;
-        return;
-    }
-    iss >> join_event_id;
-    model.rad(join_event_id);
+JointEventActionStatus Controller::handleRejectJointEvent(int event_id) {
+    return model.rejectJointEventInvitation(event_id);
 }
 
-void Controller::handleViewJoint(string input)
+void Controller::handleViewJoint(string input) // Keep old signature for non-refactored methods
 {
     string order;
 
